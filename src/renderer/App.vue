@@ -95,26 +95,20 @@
         <h2>
           Histórico
         </h2>
-        <div class="box-results">
-          <div id="results">
-              <p>{{ nomeResultado }}</p>
-              <p class="rslt-item"><strong>Total Kg: </strong>{{ totalDisplay }} kilogramas </p>
-              <p class="rslt-item"><strong>Arrobas totais:</strong> {{ arrobasPorAnimalDisplay  }}</p>
-              <p class="rslt-item"><strong>Valor do Arroba: </strong>R$ {{ precoTt }}</p>
-              <p class="rslt-item"><strong>Valor total:</strong> R$ {{ precoTotal}}</p>
-          </div>
-          <div class="rslt-sect">
-            <label for="input">Nome do arquivo:</label>
-             <input
-          id="inpult"
-          v-model.number="nomeResultado"
-          type="text"
-          placeholder="ex.: pesagem-1"
-        />
-            <button @click="baixarPDF">Exportar resultado</button>
+        <div id="history">
+          <div v-if="history.length === 0" class="empty">Nenhum histórico ainda — adicione valores para preencher.</div>
 
-          </div>
-          
+          <ul v-else class="history-list">
+            <li v-for="(h, idx) in history" :key="h.id" class="history-item">
+              <div class="entry" @click="selecionarHistorico(idx)" title="Clique para copiar o valor para o input">
+                <div class="value"><strong>{{ Number(h.value).toLocaleString('pt-BR') }}</strong></div>
+                <div class="meta"><small>{{ h.label }} — total após: {{ Number(h.totalAfter).toLocaleString('pt-BR') }}</small></div>
+              </div>
+              <div class="item-actions">
+                <button @click.stop="removeHistorico(idx)">✕</button>
+              </div>
+            </li>
+          </ul>
         </div>
     </div>
     </main>
@@ -124,19 +118,23 @@
 
 <script setup>
 import minhaImg from '../assets/cow.png'
-import { ref, computed } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import html2pdf from 'html2pdf.js';
 
+const STORAGE_KEY = 'cowculator_history_v1'
 
 const pesoKg = ref();
 const total = ref(0);
 const preco = ref(300);
 const kgPorArroba = ref(15);
 const nomeResultado = ref("")
+const history = ref([])
 
 function adicionarPeso(){
-  total.value += pesoKg.value;
+  const parsed = Number(pesoKg.value) || 0
+  total.value += parsed;
   pesoKg.value = 0
+  adicionarHistoricoEntrada(parsed, total.value)
 }
 const arrobasPorAnimal = computed(() => {
   return kgPorArroba.value > 0 ? total.value / kgPorArroba.value : 0;
@@ -167,16 +165,6 @@ function reset() {
   total.value = 0;
 }
 
-async function copiar() {
-  const text = `Arrobas totais: ${precosTotaisDisplay.value} @ — Peso total: ${pesoTotalDisplay.value} kg`;
-  try {
-    await navigator.clipboard.writeText(text);
-    alert("Resultado copiado para a área de transferência");
-  } catch (e) {
-    alert("Não foi possível copiar automaticamente.");
-  }
-}
-
 // PDF 
 
   function baixarPDF() {
@@ -192,23 +180,68 @@ async function copiar() {
 }
 // HISTÓRICO
 
-function salvarHistorico(expressao, resultado){
-  let historico = JSON.parse(localStorage.getItem("historico") || [])
-
-
-historico.push({expressao, resultado})
-
-localStorage.setItem("historico", JSON.stringify(historico))
+function generateId() {
+  return  `${Date.now()}-${Math.floor(Math.random()*1000)}`
 }
+
+function nowLabel(ts = Date.now()){
+  return new Date(ts).toLocaleString()
+}
+
 function carregarHistorico(){
-  return  JSON.parse(localStorage.getItem)(historico) || [];
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return [] 
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed)) return parsed
+    return [] 
+  } catch (e) {
+    console.log('Erro ao carregar o histórico', e)
+    return []
+  }
 }
+
+function salvarHistorico(){
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(history.value))
+  } catch (e) {
+    console.log('Erro ao salvar o histórico', e)
+  }
+}
+
+console.log(history)
+
+function adicionarHistoricoEntrada(){
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return
+  const entry = {
+    id: generateId(),
+    value:Number(value),
+    totalAfter: Number(totalAfter),
+    timestamp: Date.now(),
+    label: nowLabel()
+  }
+  history.value.unshift(entry)
+  if(history.length > 1000) history.value.splice(1000)
+}
+
+console.log(history)
 
 function limparHistorico(){
-  localStorage.removeItem("historico")
+  if(!confirm('Deseja limpar todo o historico?')) return
+  history.value = []
 }
 
+function selecionarHistorico(index){
+  const e = history.value[index]
+  if(!e) return
+  pesoKg = e.value
+}
 
+watch(history, () => salvarHistorico())
+
+onMounted(() => {
+  history.value = carregarHistorico()
+})
 </script>
 
 <style scoped>
