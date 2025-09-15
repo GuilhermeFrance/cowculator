@@ -13,7 +13,7 @@
     <main class="card">
       <div class="field">
         <label for="peso">Peso (kg)</label>
-        <div class="box-p">
+        <div class="box-p"> 
           
         <input
           id="peso"
@@ -70,12 +70,51 @@
         </h2>
         <div class="box-results">
           <div id="results">
+              <p>{{ nomeResultado }}</p>
               <p class="rslt-item"><strong>Total Kg: </strong>{{ totalDisplay }} kilogramas </p>
               <p class="rslt-item"><strong>Arrobas totais:</strong> {{ arrobasPorAnimalDisplay  }}</p>
               <p class="rslt-item"><strong>Valor do Arroba: </strong>R$ {{ precoTt }}</p>
               <p class="rslt-item"><strong>Valor total:</strong> R$ {{ precoTotal}}</p>
           </div>
-          <button @click="baixarPDF">Exportar resultado</button>
+          <div class="rslt-sect">
+            <label for="input">Nome do arquivo:</label>
+             <input
+          id="inpult"
+          v-model.number="nomeResultado"
+          type="text"
+          placeholder="ex.: pesagem-1"
+        />
+            <button @click="baixarPDF">Exportar resultado</button>
+
+          </div>
+          
+        </div>
+    </div>
+    <hr> 
+     <div  class="resultados">
+        <h2>
+          Histórico
+        </h2>
+        <div class="box-results">
+          <div id="results">
+              <p>{{ nomeResultado }}</p>
+              <p class="rslt-item"><strong>Total Kg: </strong>{{ totalDisplay }} kilogramas </p>
+              <p class="rslt-item"><strong>Arrobas totais:</strong> {{ arrobasPorAnimalDisplay  }}</p>
+              <p class="rslt-item"><strong>Valor do Arroba: </strong>R$ {{ precoTt }}</p>
+              <p class="rslt-item"><strong>Valor total:</strong> R$ {{ precoTotal}}</p>
+          </div>
+          <div class="rslt-sect">
+            <label for="input">Nome do arquivo:</label>
+             <input
+          id="inpult"
+          v-model.number="nomeResultado"
+          type="text"
+          placeholder="ex.: pesagem-1"
+        />
+            <button @click="baixarPDF">Exportar resultado</button>
+
+          </div>
+          
         </div>
     </div>
     </main>
@@ -93,6 +132,7 @@ const pesoKg = ref();
 const total = ref(0);
 const preco = ref(300);
 const kgPorArroba = ref(15);
+const nomeResultado = ref("")
 
 function adicionarPeso(){
   total.value += pesoKg.value;
@@ -150,6 +190,24 @@ async function copiar() {
   }
   html2pdf().set(opt).from(element).save()
 }
+// HISTÓRICO
+
+function salvarHistorico(expressao, resultado){
+  let historico = JSON.parse(localStorage.getItem("historico") || [])
+
+
+historico.push({expressao, resultado})
+
+localStorage.setItem("historico", JSON.stringify(historico))
+}
+function carregarHistorico(){
+  return  JSON.parse(localStorage.getItem)(historico) || [];
+}
+
+function limparHistorico(){
+  localStorage.removeItem("historico")
+}
+
 
 </script>
 
@@ -168,6 +226,7 @@ async function copiar() {
 }
 h2{
   margin-left: 40px;
+  margin-bottom: 2px;
 }
 label{
   font-weight: 800;
@@ -190,6 +249,9 @@ label{
 .field {
   margin-bottom: 12px;
 }
+#inpults{
+
+}
 .btn-sum{
   font-size: 20px;
   padding: px;
@@ -205,11 +267,19 @@ label{
   flex-direction: row;
   justify-content: space-around;
   align-items: center;
+  align-content: center;
+}
+.rslt-sect  {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 7px  ;
+  height: 164px;
 }
 #results{
   display: flex;
   flex-direction: column;
-
+  justify-content: center;
 }
 .rslt-item{
   margin: 6px;
@@ -217,7 +287,9 @@ label{
 .resultados{
   display: flex;
   flex-direction: column;
-  margin-top: 50px;
+  margin-top: 10px;
+  justify-content: center;
+  margin-bottom: 30px;
 }   
 input {
   width: 100%;
